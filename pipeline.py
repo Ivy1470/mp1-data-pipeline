@@ -15,7 +15,6 @@ import sys
 from pathlib import Path
 from data_loaders import load_data
 import pandas as pd
-import yaml
 from data_processor import process_data, create_cleaning_report
 
 
@@ -29,7 +28,7 @@ def setup_logging(verbose: bool = False) -> None:
 
     logging.basicConfig(
         level=level,
-        format="%(asctime)s %(levelname)-8s %(message)s",
+        format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
         datefmt="%H:%M:%S"
     )
 
@@ -98,31 +97,45 @@ def main() -> None:
     if not validate_input(args.input):
         sys.exit(1)
 
+    if not validate_input(args.config):
+        sys.exit(1)
+
     
     try:
         data = load_data(args.input)
-        logger.info("Data loaded successfully")
-        logger.debug("Loaded data: %s", data)
+        config = load_data(args.config)
 
-        if isinstance(data, pd.DataFrame):
-            with open(args.config, "r", encoding="utf-8") as file:
-                config = yaml.safe_load(file)
+        if not isinstance(data, pd.DataFrame):
+            raise ValueError("Input data must be a CSV DataFrame")
 
-            cleaned_data = process_data(data, config)
-            report = create_cleaning_report(data, cleaned_data)
+        if not isinstance(config, dict):
+            raise ValueError("Configuration must be a dictionary")
 
-            cleaned_data.to_csv(args.output, index=False)
-            logger.info("Cleaned data saved to %s", args.output)
-
-            logger.info("Data cleaning completed")
-            logger.info("Cleaning report: %s", report)
-        else:
-            logger.info("Input is not a CSV DataFrame; skipping cleaning")
-
-    except (ValueError, OSError, yaml.YAMLError, KeyError) as error:
-        logger.error("Pipeline failed: %s", error)
+    except (ValueError, OSError) as error:
+        logger.error("Failed to load data: %s", error)
         sys.exit(1)
 
+    original_data = data.copy()
+
+    try:
+        cleaned_data = process_data(data, config)
+
+    except ValueError as error:
+        logger.error("Data processing failed: %s", error)
+        sys.exit(1)
+
+    report = create_cleaning_report(original_data, cleaned_data)
+    print(report)
+
+    cleaned_data.to_csv(args.output, index=False)
+
+    logger.info(
+        "Processing complete: %s -> %s rows",
+        len(original_data),
+        len(cleaned_data)
+    )
+
+    logger.info("Saved cleaned data to %s", args.output)
 
 
 

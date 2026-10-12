@@ -17,7 +17,12 @@ def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
     cleaned_df = df.drop_duplicates()
     removed = before - len(cleaned_df)
 
-    logger.info("Removed %d duplicate rows", removed)
+    logger.debug(
+        "remove_duplicates: %d -> %d rows, removed=%d",
+        before,
+        len(cleaned_df),
+        removed
+    )
     return cleaned_df
 
 
@@ -31,12 +36,19 @@ def handle_missing(df: pd.DataFrame, axis: str = "rows") -> pd.DataFrame:
     elif axis == "columns":
         cleaned_df = df.dropna(axis=1)
     else:
+        logger.error("Invalid axis: %s", axis)
         raise ValueError(f"Invalid axis: {axis}")
 
-    logger.info(
-        "Handled missing values: shape changed from %s to %s",
-        before,
-        cleaned_df.shape
+    removed = (
+        before[0] - cleaned_df.shape[0]
+        if axis == "rows"
+        else before[1] - cleaned_df.shape[1]
+    )
+
+    logger.debug(
+        "handle_missing: removed %d %s",
+        removed,
+        axis
     )
 
     return cleaned_df
@@ -51,6 +63,10 @@ def remove_outliers(
 ) -> pd.DataFrame:
     """Remove outliers from specified numeric columns."""
     cleaned_df = df.copy()
+    
+    if method not in ("iqr", "zscore"):
+        logger.error("Unsupported outlier method: %s", method)
+        raise ValueError(f"Unsupported outlier method: {method}")
 
     for column in columns:
         if column not in cleaned_df.columns:
@@ -83,11 +99,10 @@ def remove_outliers(
             z_scores = (cleaned_df[column] - mean) / std
             cleaned_df = cleaned_df[z_scores.abs() <= threshold]
 
-        else:
-            raise ValueError(f"Unsupported outlier method: {method}")
-
-    logger.info(
-        "Removed %d outlier rows",
+    logger.debug(
+        "remove_outliers: method=%s, threshold=%s, removed=%d rows",
+        method,
+        threshold,
         len(df) - len(cleaned_df)
     )
 
