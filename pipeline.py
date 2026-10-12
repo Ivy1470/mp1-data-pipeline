@@ -13,6 +13,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+from data_loaders import load_data
 
 
 logger = logging.getLogger(__name__)
@@ -80,6 +81,7 @@ def validate_input(filepath: str) -> bool:
 
 
 
+
 def main() -> None:
     """Main pipeline function."""
     args = parse_arguments()
@@ -87,12 +89,21 @@ def main() -> None:
     setup_logging(args.verbose)
 
     logger.debug(
-        f"Arguments parsed: input={args.input}, "
-        f"output={args.output}, format={args.format}"
+        "Arguments parsed: input=%s, output=%s, format=%s",
+        args.input, args.output, args.format
     )
 
     if not validate_input(args.input):
         sys.exit(1)
+
+    try:
+        data = load_data(args.input)
+        logger.info("Data loaded successfully")
+        logger.debug("Loaded data: %s", data)
+    except (ValueError, OSError) as error:
+        logger.error("Failed to load data: %s", error)
+        sys.exit(1)
+
 
 
 
