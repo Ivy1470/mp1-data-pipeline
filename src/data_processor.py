@@ -4,7 +4,7 @@ Data processing functions for DS3500 MP1.
 """
 
 import logging
-
+from typing import Any
 import pandas as pd
 
 
@@ -63,7 +63,7 @@ def remove_outliers(
 ) -> pd.DataFrame:
     """Remove outliers from specified numeric columns."""
     cleaned_df = df.copy()
-    
+
     if method not in ("iqr", "zscore"):
         logger.error("Unsupported outlier method: %s", method)
         raise ValueError(f"Unsupported outlier method: {method}")
@@ -109,7 +109,7 @@ def remove_outliers(
     return cleaned_df
 
 
-def process_data(df: pd.DataFrame, config: dict) -> pd.DataFrame:
+def process_data(df: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """Apply the processing steps enabled in the configuration."""
     settings = config["processing"]
     cleaned_df = df.copy()
@@ -139,7 +139,7 @@ def process_data(df: pd.DataFrame, config: dict) -> pd.DataFrame:
 def create_cleaning_report(
     df_before: pd.DataFrame,
     df_after: pd.DataFrame
-) -> dict:
+) -> dict[str, int]:
     """Return a dictionary summarizing the cleaning results."""
     return {
         "rows_before": len(df_before),

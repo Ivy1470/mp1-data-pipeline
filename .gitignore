@@ -16,3 +16,6 @@ venv/
 
 # Mypy cache
 .mypy_cache/
+
+# Pipeline output
+output/

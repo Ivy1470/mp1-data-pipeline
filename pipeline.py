@@ -1,4 +1,3 @@
-
 """
 Data Processing Pipeline - CLI Template
 
@@ -6,18 +5,24 @@ DS 3500 - MP1
 
 Usage:
     python pipeline.py --input data.csv --output clean.csv
-    python pipeline.py --input data.csv --output results.json --format json --verbose
+    python pipeline.py --input data.csv --output results.json --verbose
 """
 
 import argparse
 import logging
 import sys
-from pathlib import Path
-import pandas as pd
-from src.data_loaders import load_data
-from src.data_processor import process_data, create_cleaning_report
-from src.utils import setup_logging, validate_input
 
+import pandas as pd
+
+from src import (
+    create_cleaning_report,
+    load_data,
+    process_data,
+    save_data,
+    setup_logging,
+    validate_dataframe,
+    validate_input,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +67,9 @@ def main() -> None:
     setup_logging(args.verbose)
 
     logger.debug(
-    "Arguments parsed: input=%s, output=%s, config=%s",
-    args.input, args.output, args.config
-)
+        "Arguments parsed: input=%s, output=%s, config=%s",
+        args.input, args.output, args.config
+    )
 
     if not validate_input(args.input):
         sys.exit(1)
@@ -72,7 +77,6 @@ def main() -> None:
     if not validate_input(args.config):
         sys.exit(1)
 
-    
     try:
         data = load_data(args.input)
         config = load_data(args.config)
@@ -87,6 +91,24 @@ def main() -> None:
         logger.error("Failed to load data: %s", error)
         sys.exit(1)
 
+    required_columns = config["validation"]["required_columns"]
+    numeric_columns = config["validation"]["numeric_columns"]
+
+    rows_before_validation = len(data)
+
+    try:
+        data = validate_dataframe(data, required_columns, numeric_columns)
+
+    except ValueError as error:
+        logger.error("Data validation failed: %s", error)
+        sys.exit(1)
+
+    logger.info(
+        "Validation complete: %d -> %d rows",
+        rows_before_validation,
+        len(data)
+    )
+
     original_data = data.copy()
 
     try:
@@ -96,19 +118,18 @@ def main() -> None:
         logger.error("Data processing failed: %s", error)
         sys.exit(1)
 
-    report = create_cleaning_report(original_data, cleaned_data)
-    print(report)
-
-    cleaned_data.to_csv(args.output, index=False)
-
     logger.info(
-        "Processing complete: %s -> %s rows",
+        "Processing complete: %d -> %d rows",
         len(original_data),
         len(cleaned_data)
     )
 
+    save_data(cleaned_data, args.output)
     logger.info("Saved cleaned data to %s", args.output)
 
+    report = create_cleaning_report(original_data, cleaned_data)
+    print("Cleaning report:")
+    print(report)
 
 
 if __name__ == "__main__":
