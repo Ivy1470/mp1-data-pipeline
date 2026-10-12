@@ -13,26 +13,13 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from data_loaders import load_data
 import pandas as pd
-from data_processor import process_data, create_cleaning_report
+from src.data_loaders import load_data
+from src.data_processor import process_data, create_cleaning_report
+from src.utils import setup_logging, validate_input
 
 
 logger = logging.getLogger(__name__)
-
-
-
-def setup_logging(verbose: bool = False) -> None:
-    """Configure logging for the pipeline."""
-    level = logging.DEBUG if verbose else logging.INFO
-
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
-        datefmt="%H:%M:%S"
-    )
-
-
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -66,21 +53,6 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     return parser.parse_args()
-
-
-
-
-def validate_input(filepath: str) -> bool:
-    """Check whether the input path exists and is a file."""
-    if Path(filepath).is_file():
-        logger.info(f"Input file validated: {filepath}")
-        return True
-    else:
-        logger.error(f"Input file not found: {filepath}")
-        return False
-
-
-
 
 
 def main() -> None:
